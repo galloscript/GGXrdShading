@@ -8,51 +8,51 @@
 
         <script type="x-shader/x-vertex" id="celshading_vs">
 
-        	precision highp float;
-			
-			varying vec3 vNormal;
-			varying vec3 vWorldNormal;
-			varying vec2 vUv;
-			varying vec3 vColor;
-			varying vec3 vPos;
+            precision highp float;
+            
+            varying vec3 vNormal;
+            varying vec3 vWorldNormal;
+            varying vec2 vUv;
+            varying vec3 vColor;
+            varying vec3 vPos;
 
-			#include <skinning_pars_vertex>
+            #include <skinning_pars_vertex>
 
-			void main() 
-			{
-				vNormal = normal;
-				
-				vUv = uv;
-				vColor = color;
+            void main() 
+            {
+                vNormal = normal;
+                
+                vUv = uv;
+                vColor = color;
 
-				#include <skinbase_vertex>
-				#include <begin_vertex>
-				#include <skinning_vertex>
-				
-				vPos =  (modelViewMatrix * vec4( transformed, 1.0 )).xyz;
-				vWorldNormal = normalize(mat3(modelViewMatrix) * normal);
+                #include <skinbase_vertex>
+                #include <begin_vertex>
+                #include <skinning_vertex>
+                
+                vPos =  (modelViewMatrix * vec4( transformed, 1.0 )).xyz;
+                vWorldNormal = normalize(mat3(modelViewMatrix) * normal);
 
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
-			}
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
+            }
 
-		</script>
+        </script>
 
-		<script type="x-shader/x-fragment" id="celshading_fs">
+        <script type="x-shader/x-fragment" id="celshading_fs">
 
-			precision highp float;
+            precision highp float;
 
-			varying vec3 vNormal;
-			varying vec3 vWorldNormal;
-			varying vec2 vUv;
-			varying vec3 vColor;
-			varying vec3 vPos;
+            varying vec3 vNormal;
+            varying vec3 vWorldNormal;
+            varying vec2 vUv;
+            varying vec3 vColor;
+            varying vec3 vPos;
 
-			uniform mat4 modelViewMatrix;
+            uniform mat4 modelViewMatrix;
 
-			uniform sampler2D uBaseColor;
-			uniform sampler2D uDecal;
-			uniform sampler2D uILM;
-			uniform sampler2D uSSS;
+            uniform sampler2D uBaseColor;
+            uniform sampler2D uDecal;
+            uniform sampler2D uILM;
+            uniform sampler2D uSSS;
             uniform vec2      uResolution;
             uniform int       uRenderMode;
 
@@ -68,57 +68,57 @@
             #define rm_ilm_alpha       9
             #define rm_vertex_color    10
 
-			vec3 toneMapping(vec3 hdrColor, float exposure, float gamma)
-			{
-			    // Exposure tone mapping
-			    vec3 mapped = vec3(1.0) - exp(-hdrColor * exposure);
-			    
-			    // Gamma correction
-			    mapped = pow(abs(mapped), vec3(1.0 / gamma));
-			    
-			    return mapped;
-			}
+            vec3 toneMapping(vec3 hdrColor, float exposure, float gamma)
+            {
+                // Exposure tone mapping
+                vec3 mapped = vec3(1.0) - exp(-hdrColor * exposure);
+                
+                // Gamma correction
+                mapped = pow(abs(mapped), vec3(1.0 / gamma));
+                
+                return mapped;
+            }
 
-			void main() 
-			{
+            void main() 
+            {
                 vec2 st = gl_FragCoord.xy / uResolution.xy;
-				vec3 light = normalize(vec3( 15.0, 7.0, 30.0));
+                vec3 light = normalize(vec3( 15.0, 7.0, 30.0));
 
-				float dProd = (dot( vWorldNormal, light ) + 1.0) * 0.5;
-				dProd = clamp(dProd, 0.0, 1.0);
+                float dProd = (dot( vWorldNormal, light ) + 1.0) * 0.5;
+                dProd = clamp(dProd, 0.0, 1.0);
 
-				vec4 base 	= texture2D( uBaseColor, vUv );
-				vec4 decal 	= texture2D( uDecal, vUv );
-				vec4 ilm 	= texture2D( uILM, vUv );
-				vec4 sss 	= texture2D( uSSS, vUv );
+                vec4 base    = texture2D( uBaseColor, vUv );
+                vec4 decal   = texture2D( uDecal, vUv );
+                vec4 ilm     = texture2D( uILM, vUv );
+                vec4 sss     = texture2D( uSSS, vUv );
 
-				float threshold = 0.5;
+                float threshold = 0.5;
 
-				//shadow bias
-				threshold = 1.0 - (ilm.g * vColor.r);
+                //shadow bias
+                threshold = 1.0 - (ilm.g * vColor.r);
 
                 //base color
                 vec3 baseColor = base.rgb;
 
-				//sadow color
-				vec3 shadowColor = baseColor * sss.rgb;
+                //sadow color
+                vec3 shadowColor = baseColor * sss.rgb;
 
-				//cel shading
-				vec3 celShadingColor = (dProd > threshold) ? baseColor  : shadowColor;
+                //cel shading
+                vec3 celShadingColor = (dProd > threshold) ? baseColor  : shadowColor;
 
-				//specular & darken areas
-				vec3 specularDarkenColor = mix( ilm.rrr, celShadingColor, 0.6);
+                //specular & darken areas
+                vec3 specularDarkenColor = mix( ilm.rrr, celShadingColor, 0.6);
 
-				//self shadow threshold check
-				vec3 finalColor = ((1.0 - dProd) < ilm.b) ? specularDarkenColor : celShadingColor;
-				
+                //self shadow threshold check
+                vec3 finalColor = ((1.0 - dProd) < ilm.b) ? specularDarkenColor : celShadingColor;
+                
                 //internal outline
                 finalColor *= ilm.a;
 
                 //tone mapping
                 finalColor = toneMapping(finalColor, 3.0, 0.32);
 
-				gl_FragColor = vec4(finalColor * ilm.a, 1.0);
+                gl_FragColor = vec4(finalColor * ilm.a, 1.0);
 
                 if(uRenderMode == rm_cel_shading)
                 {
@@ -160,58 +160,58 @@
                 {
                     gl_FragColor = vec4(vColor, 1.0);
                 }
-			}
+            }
 
-		</script>
+        </script>
 
-		<script type="x-shader/x-vertex" id="outline_vs">
+        <script type="x-shader/x-vertex" id="outline_vs">
 
-			uniform float uThickness;
+            uniform float uThickness;
             uniform bool  uOutline;
 
-			varying vec3 vNormal;
-			varying vec2 vUv;
-			varying vec3 vColor;
+            varying vec3 vNormal;
+            varying vec2 vUv;
+            varying vec3 vColor;
 
-			#include <skinning_pars_vertex>
+            #include <skinning_pars_vertex>
 
-			void main() {
+            void main() {
 
-				vNormal = normal;
-				vUv = uv;
-				vColor = color;
+                vNormal = normal;
+                vUv = uv;
+                vColor = color;
 
-				#include <skinbase_vertex>
-				//#include <begin_vertex>
-				vec3 transformed  = position + uThickness * normal;
-				#include <skinning_vertex>
+                #include <skinbase_vertex>
+                //#include <begin_vertex>
+                vec3 transformed  = position + uThickness * normal;
+                #include <skinning_vertex>
 
-				
-				gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
+                
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
 
-				//Apply z-offset
-				gl_Position.z += 0.00002;
-			}
+                //Apply z-offset
+                gl_Position.z += 0.00002;
+            }
 
-		</script>
+        </script>
 
-		<script type="x-shader/x-fragment" id="outline_fs">
+        <script type="x-shader/x-fragment" id="outline_fs">
 
-			varying vec3 vNormal;
-			varying vec2 vUv;
-			varying vec3 vColor;
+            varying vec3 vNormal;
+            varying vec2 vUv;
+            varying vec3 vColor;
 
-			uniform sampler2D uBaseColor;
-			uniform sampler2D uSSS;
+            uniform sampler2D uBaseColor;
+            uniform sampler2D uSSS;
 
-			void main() {
-				vec4 base 	= texture2D( uBaseColor, vUv );
-				vec4 sss 	= texture2D( uSSS, vUv );
-				gl_FragColor = vec4(base.rgb * sss.rgb * 0.25, 1.0);
+            void main() {
+                vec4 base     = texture2D( uBaseColor, vUv );
+                vec4 sss     = texture2D( uSSS, vUv );
+                gl_FragColor = vec4(base.rgb * sss.rgb * 0.25, 1.0);
 
-			}
+            }
 
-		</script>
+        </script>
         <script type="x-shader/x-fragment" id="diffuse_fillter_vs">
             
             varying vec2 vUv;
@@ -374,19 +374,19 @@
                 window.addEventListener( 'resize', onWindowResize, false );
 
                 // instantiate a loader
-				var lTgaLoader = new THREE.TGALoader();
+                var lTgaLoader = new THREE.TGALoader();
 
-				// load a resource
-				textures.base 	= lTgaLoader.load('May/Textures/MAY_base.tga');
-				textures.decal 	= lTgaLoader.load('May/Textures/MAY_decal.tga');
-				textures.ilm 	= lTgaLoader.load('May/Textures/MAY_ilm.tga');
-				textures.sss 	= lTgaLoader.load('May/Textures/MAY_Sss.tga');
+                // load a resource
+                textures.base   = lTgaLoader.load('May/Textures/MAY_base.tga');
+                textures.decal  = lTgaLoader.load('May/Textures/MAY_decal.tga');
+                textures.ilm    = lTgaLoader.load('May/Textures/MAY_ilm.tga');
+                textures.sss    = lTgaLoader.load('May/Textures/MAY_Sss.tga');
 
-				for(var t in textures)
-				{
-					textures[t].wrapS = THREE.RepeatWrapping;
-					textures[t].wrapT = THREE.RepeatWrapping;
-				}
+                for(var t in textures)
+                {
+                    textures[t].wrapS = THREE.RepeatWrapping;
+                    textures[t].wrapT = THREE.RepeatWrapping;
+                }
 
                 toonMaterial = new THREE.ShaderMaterial( {
 
@@ -485,7 +485,7 @@
 
                 loader.load( url, function ( data ) {
 
-                	console.log(data);
+                    console.log(data);
 
                     gltf = data;
 
@@ -543,13 +543,13 @@
                         //TOOD: apply cel shading material here
 
 
-						object.traverse( function ( node ) 
-						{
-	                        if ( node.material )
-	                        {
-								node.material = toonMaterial;
-							}
-						});
+                        object.traverse( function ( node ) 
+                        {
+                            if ( node.material )
+                            {
+                                node.material = toonMaterial;
+                            }
+                        });
 
                      }
 
@@ -589,25 +589,25 @@
                     
 
                     var newNodes = [];
-					object.traverse( function ( node ) 
-					{
+                    object.traverse( function ( node ) 
+                    {
                         if ( node.material )
                         {
-                        	var newNode = node.clone();
-                        	newNode.skeleton = node.skeleton;
-							newNode.material = outlineMaterial;
-							newNodes.push(newNode);
-						}
-					});
+                            var newNode = node.clone();
+                            newNode.skeleton = node.skeleton;
+                            newNode.material = outlineMaterial;
+                            newNodes.push(newNode);
+                        }
+                    });
 
-					for(var n in newNodes)
-					{
-						object.add(newNodes[n]);
-					}
+                    for(var n in newNodes)
+                    {
+                        object.add(newNodes[n]);
+                    }
 
-					console.log(object);
+                    console.log(object);
 
-					scene.add( object );
+                    scene.add( object );
 
                     onWindowResize();
 
