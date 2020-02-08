@@ -18,13 +18,13 @@
 
             #include <skinning_pars_vertex>
 
-            uniform bool uIsSafari;
+            uniform bool uInvertUV_Y;
 
             void main() 
             {
                 vNormal = normal;
                 
-                vUv = (uIsSafari) ? vec2(uv.x, 1.0 - uv.y) : uv; 
+                vUv = (uInvertUV_Y) ? vec2(uv.x, 1.0 - uv.y) : uv; 
                 vColor = color;
 
                 #include <skinbase_vertex>
@@ -169,7 +169,7 @@
         <script type="x-shader/x-vertex" id="outline_vs">
 
             uniform float uThickness;
-            uniform bool  uIsSafari;
+            uniform bool  uInvertUV_Y;
 
             varying vec3 vNormal;
             varying vec2 vUv;
@@ -180,7 +180,7 @@
             void main() {
 
                 vNormal = normal;
-                vUv = (uIsSafari) ? vec2(uv.x, 1.0 - uv.y) : uv;
+                vUv = (uInvertUV_Y) ? vec2(uv.x, 1.0 - uv.y) : uv;
                 vColor = color;
 
                 #include <skinbase_vertex>
@@ -359,7 +359,7 @@
                 fxaa: true
             };
 
-            var isSafari = navigator.vendor && navigator.vendor.indexOf('Apple') > -1 &&
+            var isSafariOrEdge = (navigator.vendor != undefined) && (navigator.vendor.indexOf('Apple') > -1 || window.navigator.userAgent.indexOf("Edge") > -1) &&
                navigator.userAgent &&
                navigator.userAgent.indexOf('CriOS') == -1 &&
                navigator.userAgent.indexOf('FxiOS') == -1;
@@ -406,7 +406,7 @@
                         uILM : { type: "t", value: textures.ilm },
                         uSSS : { type: "t", value: textures.sss },
                         uRenderMode : { value: 0 },
-                        uIsSafari : { value: isSafari }
+                        uInvertUV_Y : { value: isSafariOrEdge }
                     },
                     vertexColors: THREE.VertexColors,
                     skinning: true,
@@ -423,7 +423,7 @@
                         uDecal : { type: "t", value: textures.decal },
                         uILM : { type: "t", value: textures.ilm },
                         uSSS : { type: "t", value: textures.sss },
-                        uIsSafari : { value: isSafari }
+                        uInvertUV_Y : { value: isSafariOrEdge }
                     },
                     vertexColors: THREE.VertexColors,
                     skinning: true,
