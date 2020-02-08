@@ -18,7 +18,12 @@
 
             #include <skinning_pars_vertex>
 
-            uniform bool uInvertUV_Y;
+            uniform int         uRenderMode;
+            uniform vec2        uResolution;
+            uniform bool        uInvertUV_Y;
+            uniform bool        uDisplayUVLayout;
+
+            #define rm_outline_backface    3
 
             void main() 
             {
@@ -35,6 +40,17 @@
                 vWorldNormal = normalize(mat3(modelViewMatrix) * normal);
 
                 gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
+
+                if(uDisplayUVLayout)
+                {
+                    vec2 lUvOut = fract(vUv.xy) * vec2(1.0, uResolution.x / uResolution.y);
+                    lUvOut = (!uInvertUV_Y) ? vec2(lUvOut.x, 1.0 - lUvOut.y) : lUvOut;
+                    gl_Position = vec4((lUvOut - vec2(1.0, (uInvertUV_Y) ? 1.0 : 0.0))  * 5.0, 1.0, 5.0);
+                }
+                else if(uRenderMode == rm_outline_backface)
+                {
+                    gl_Position = vec4(0., 0., 0., 0.);
+                }
             }
 
         </script>
@@ -58,17 +74,18 @@
             uniform vec2      uResolution;
             uniform int       uRenderMode;
 
-            #define rm_ggxrd_shading   0
-            #define rm_cel_shading     1
-            #define rm_outline         2
-            #define rm_color           3
-            #define rm_sss             4
-            #define rm_ilm             5
-            #define rm_ilm_red         6
-            #define rm_ilm_green       7
-            #define rm_ilm_blue        8
-            #define rm_ilm_alpha       9
-            #define rm_vertex_color    10
+            #define rm_ggxrd_shading    0
+            #define rm_cel_shading      1
+            #define rm_outline          2
+            #define rm_outline_backface 3
+            #define rm_color            4
+            #define rm_sss              5
+            #define rm_ilm              6
+            #define rm_ilm_red          7
+            #define rm_ilm_green        8
+            #define rm_ilm_blue         9
+            #define rm_ilm_alpha        10
+            #define rm_vertex_color     11
 
             vec3 toneMapping(vec3 hdrColor, float exposure, float gamma)
             {
@@ -130,6 +147,10 @@
                 {
                     gl_FragColor = vec4(0.9, 0.9, 0.9, 1.0);
                 }
+                else if(uRenderMode == rm_outline_backface)
+                {
+                    gl_FragColor = vec4(0.9, 0.9, 0.9, 0.0);
+                }
                 else if(uRenderMode == rm_color)
                 {
                     gl_FragColor = vec4(baseColor, 1.0);
@@ -168,14 +189,14 @@
 
         <script type="x-shader/x-vertex" id="outline_vs">
 
-            uniform float uThickness;
-            uniform bool  uInvertUV_Y;
-
             varying vec3 vNormal;
             varying vec2 vUv;
             varying vec3 vColor;
 
             #include <skinning_pars_vertex>
+
+            uniform float       uThickness;
+            uniform bool        uInvertUV_Y;
 
             void main() {
 
@@ -339,6 +360,7 @@
                 'ggxrd_shading',
                 'cel_shading',
                 'outline',
+                'outline_backface',
                 'color',
                 'sss',
                 'ilm',
@@ -368,6 +390,9 @@
             {
 
                 container = document.getElementById( 'container' );
+                //var canvas = document.createElement( 'canvas' );
+                //var context = canvas.getContext( 'webgl2', { alpha: false } );
+                //var renderer = new THREE.WebGLRenderer( { canvas: canvas, context: context } );
 
                 renderer = new THREE.WebGLRenderer( { antialias: true } );
                 renderer.setPixelRatio( window.devicePixelRatio );
@@ -406,7 +431,8 @@
                         uILM : { type: "t", value: textures.ilm },
                         uSSS : { type: "t", value: textures.sss },
                         uRenderMode : { value: 0 },
-                        uInvertUV_Y : { value: isSafariOrEdge }
+                        uInvertUV_Y : { value: isSafariOrEdge },
+                        uDisplayUVLayout : { value: false }
                     },
                     vertexColors: THREE.VertexColors,
                     skinning: true,
@@ -471,7 +497,7 @@
                 }
 
                 scene = new THREE.Scene();
-                scene.background = new THREE.Color( 0x222222 );
+                scene.background = new THREE.Color( 0x505050 );
 
                 camera = new THREE.PerspectiveCamera( 45, container.offsetWidth / container.offsetHeight, 0.001, 1000 );
                 scene.add( camera );
@@ -685,6 +711,7 @@
 
                 gui.add( outlineMaterial.uniforms.uThickness, 'value', 0.0, 3.0 ).name('Outline Thickness').listen();
                 gui.add( diffuseFilterPass.uniforms.uPower, 'value' , 0.0, 1.0 ).name('Diffuse Filter').listen();
+                gui.add( toonMaterial.uniforms.uDisplayUVLayout, 'value', false ).name('UV Layout').listen();
 
                 var modeCtrl = gui.add( state, 'renderMode', renderModes ).name('Mode');
                 modeCtrl.onChange( renderModeUpdated );
