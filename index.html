@@ -73,6 +73,7 @@
             uniform sampler2D uSSS;
             uniform vec2      uResolution;
             uniform int       uRenderMode;
+            uniform float     uLightRot;
 
             #define rm_ggxrd_shading    0
             #define rm_cel_shading      1
@@ -101,7 +102,9 @@
             void main() 
             {
                 vec2 st = gl_FragCoord.xy / uResolution.xy;
-                vec3 light = normalize(vec3( 15.0, 7.0, 30.0));
+                float lightRad = (0.125 + uLightRot) * 3.1416 * 2.0;
+                vec2 lightPos = vec2(cos(lightRad), sin(lightRad));
+                vec3 light = normalize(vec3( lightPos.x * 30.0, 6.0, lightPos.y * 30.0) );
 
                 float dProd = (dot( vWorldNormal, light ) + 1.0) * 0.5;
                 dProd = clamp(dProd, 0.0, 1.0);
@@ -137,7 +140,7 @@
                 //tone mapping
                 finalColor = toneMapping(finalColor, 3.0, 0.32);
 
-                gl_FragColor = vec4(finalColor * ilm.a, 1.0);
+                gl_FragColor = vec4(finalColor * ilm.a, ilm.a);
 
                 if(uRenderMode == rm_cel_shading)
                 {
@@ -230,7 +233,7 @@
             void main() {
                 vec4 base     = texture2D( uBaseColor, vUv );
                 vec4 sss     = texture2D( uSSS, vUv );
-                gl_FragColor = vec4(base.rgb * sss.rgb * 0.25, 1.0);
+                gl_FragColor = vec4(base.rgb * sss.rgb * 0.25, 0.0);
 
             }
 
@@ -263,7 +266,9 @@
                 //vec4 diffuse = texture2D( tDiffuse, vUv );
                 //gl_FragColor = vec4(diffuse.rgb * vec3(1.0, 0.5, 0.0), 1.0);
 
+                vec4 sourceColor = texture2D(tDiffuse, vUv);
                 vec3 c = texture2D(tDiffuse, vUv).rgb;
+                float oultine = sourceColor.a;
 
                 //declare stuff
                 const int mSize = 15;
@@ -299,7 +304,10 @@
                 }
                 final_colour = max(c, final_colour/(Z*Z));
 
-                gl_FragColor = vec4(mix(c, final_colour, uPower) , 1.0);
+                //diffuse filter has less effect in the outline (outline and ilm.a)
+                float outlineAttenuation = mix(uPower * 0.55, uPower, oultine);
+
+                gl_FragColor = vec4(mix(c, final_colour, outlineAttenuation), 1.0);
             }
 
         </script>
@@ -432,7 +440,8 @@
                         uSSS : { type: "t", value: textures.sss },
                         uRenderMode : { value: 0 },
                         uInvertUV_Y : { value: isSafariOrEdge },
-                        uDisplayUVLayout : { value: false }
+                        uDisplayUVLayout : { value: false },
+                        uLightRot : { value: 0.01 }
                     },
                     vertexColors: THREE.VertexColors,
                     skinning: true,
@@ -712,6 +721,7 @@
                 gui.add( outlineMaterial.uniforms.uThickness, 'value', 0.0, 3.0 ).name('Outline Thickness').listen();
                 gui.add( diffuseFilterPass.uniforms.uPower, 'value' , 0.0, 1.0 ).name('Diffuse Filter').listen();
                 gui.add( toonMaterial.uniforms.uDisplayUVLayout, 'value', false ).name('UV Layout').listen();
+                gui.add( toonMaterial.uniforms.uLightRot, 'value' , 0.0, 1.0 ).name('Light Rot').listen();
 
                 var modeCtrl = gui.add( state, 'renderMode', renderModes ).name('Mode');
                 modeCtrl.onChange( renderModeUpdated );
