@@ -135,12 +135,13 @@
                 vec3 finalColor = ((1.0 - dProd) < ilm.b) ? specularDarkenColor : celShadingColor;
                 
                 //internal outline
-                finalColor *= ilm.a;
+                //finalColor *= ilm.a;
 
                 //tone mapping
                 finalColor = toneMapping(finalColor, 3.0, 0.32);
 
-                gl_FragColor = vec4(finalColor * ilm.a, ilm.a);
+                float outline = (ilm.a < 0.9) ? 0.0 : 1.0;
+                gl_FragColor = vec4(finalColor * outline, outline);
 
                 if(uRenderMode == rm_cel_shading)
                 {
@@ -199,7 +200,16 @@
             #include <skinning_pars_vertex>
 
             uniform float       uThickness;
+            uniform float       uZOffset;
+            uniform float       uVariation;
             uniform bool        uInvertUV_Y;
+
+            vec2 hash( vec2 p ) 
+            { // rand in [-1,1]
+                p = vec2( dot(p,vec2(127.1,311.7)),
+                          dot(p,vec2(269.5,183.3)) );
+                return -1. + 2.*fract(sin(p+20.)*53758.5453123);
+            }
 
             void main() {
 
@@ -209,14 +219,16 @@
 
                 #include <skinbase_vertex>
                 //#include <begin_vertex>
-                vec3 transformed  = position + uThickness * normal;
+                vec2 variation = min(hash(position.xy * position.yz) * 0.5 + 0.5, 1.5);
+                vec3 transformed  = position + uThickness * mix(1.0, variation.x, uVariation) * normal ;
                 #include <skinning_vertex>
 
                 
                 gl_Position = projectionMatrix * modelViewMatrix * vec4( transformed, 1.0 );
 
                 //Apply z-offset
-                gl_Position.z += 0.00002;
+                //gl_Position.z += 0.00002;
+                gl_Position.z += uZOffset;
             }
 
         </script>
@@ -384,8 +396,10 @@
                 extension: scenes[ Object.keys( scenes )[ 0 ] ].extensions[ 0 ],
                 playAnimation: true,
                 renderMode: renderModes[0],
-                outlineThickness: 0.6,
-                diffuseFilterPower: 0.8,
+                outlineThickness: 0.54,
+                outlineZOffset: 0.000024,
+                outlineVariation: 0.8,
+                diffuseFilterPower: 0.71,
                 fxaa: true
             };
 
@@ -426,6 +440,8 @@
                 {
                     textures[t].wrapS = THREE.RepeatWrapping;
                     textures[t].wrapT = THREE.RepeatWrapping;
+                    textures[t].magFilter = THREE.LinearFilter;
+                    textures[t].minFilter = THREE.LinearFilter;
                 }
 
                 toonMaterial = new THREE.ShaderMaterial( {
@@ -454,6 +470,8 @@
 
                     uniforms: {
                         uThickness: { value: state.outlineThickness },
+                        uZOffset: { value: state.outlineZOffset },
+                        uVariation: { value: state.outlineVariation },
                         uBaseColor : { type: "t", value: textures.base },
                         uDecal : { type: "t", value: textures.decal },
                         uILM : { type: "t", value: textures.ilm },
@@ -719,6 +737,8 @@
                 animCtrl.onChange( toggleAnimations );
 
                 gui.add( outlineMaterial.uniforms.uThickness, 'value', 0.0, 3.0 ).name('Outline Thickness').listen();
+                gui.add( outlineMaterial.uniforms.uZOffset, 'value', 0.0, 0.0001 ).name('Outline Z-Offset').listen();
+                gui.add( outlineMaterial.uniforms.uVariation, 'value', 0.0, 1.0 ).name('Outline Variation').listen();
                 gui.add( diffuseFilterPass.uniforms.uPower, 'value' , 0.0, 1.0 ).name('Diffuse Filter').listen();
                 gui.add( toonMaterial.uniforms.uDisplayUVLayout, 'value', false ).name('UV Layout').listen();
                 gui.add( toonMaterial.uniforms.uLightRot, 'value' , 0.0, 1.0 ).name('Light Rot').listen();
