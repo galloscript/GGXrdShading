@@ -87,6 +87,7 @@
             #define rm_ilm_blue         9
             #define rm_ilm_alpha        10
             #define rm_vertex_color     11
+            #define rm_uvs              12
 
             void main() 
             {
@@ -120,15 +121,6 @@
                 vec3 celShadingColor = (lightValue > threshold) ? baseColor  : shadowColor;
 
                 //specular & darken areas
-                //Specular highghlight test
-                /*const float kSpecularSize = 1.0;
-                const float kSpecularThreshold = 0.8;
-                vec3 viewDirection = cameraPosition - vPos;
-                vec3 reflectDir = reflect(-lightDir, vWorldNormal);  
-                float spec = pow(max(dot(viewDirection, reflectDir), 0.0), kSpecularSize) > kSpecularThreshold ? 1.0 : 0.0;
-                vec3 specularDarkenColor = mix( ilm.rrr * spec, celShadingColor, 0.4);
-                */
-
                 vec3 specularDarkenColor = mix( ilm.rrr, celShadingColor, 0.5);
 
                 //self shadow threshold check
@@ -185,6 +177,10 @@
                 else if(uRenderMode == rm_vertex_color)
                 {
                     gl_FragColor = vec4(vColor, 1.0);
+                }
+                else if(uRenderMode == rm_uvs)
+                {
+                    gl_FragColor = vec4(vec3(vUv.xy, 0.5), 1.0);
                 }
             }
 
@@ -399,7 +395,8 @@
                 'ilm_green',
                 'ilm_blue',
                 'ilm_alpha',
-                'vertex_color'
+                'vertex_color',
+                'UVs'
             ];
 
             var state = {
