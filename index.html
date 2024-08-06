@@ -411,12 +411,12 @@
                 fxaa: true
             };
 
-            var browserInvertsUVs = (navigator.vendor != undefined && navigator.vendor.indexOf('Apple') > -1) || 
+            var browserInvertsUVs = //(navigator.vendor != undefined && navigator.vendor.indexOf('Apple') > -1) || 
                                     (navigator.userAgent != undefined && (navigator.userAgent.indexOf("Edge") > -1) ||
                                                                          (navigator.userAgent.indexOf("Firefox") > -1) ||
                                                                          (navigator.userAgent.indexOf("CriOS") > -1) ||
                                                                          (navigator.userAgent.indexOf("FxiOS") > -1)) ;
-
+            //var browserInvertsUVs = false;
             function onload() 
             {
 
